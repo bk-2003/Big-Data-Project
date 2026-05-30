@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Distributed Search Engine</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f0f4f8; }
+
+        .header {
+            background: linear-gradient(135deg, #1a237e, #1565c0);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2rem; margin-bottom: 8px; }
+        .header p { opacity: 0.8; font-size: 0.95rem; }
+
+        .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin: 4px;
+        }
+
+        .search-box {
+            max-width: 700px;
+            margin: 40px auto 20px;
+            padding: 0 20px;
+        }
+        .search-row {
+            display: flex;
+            gap: 10px;
+        }
+        .search-row input {
+            flex: 1;
+            padding: 14px 20px;
+            font-size: 1.1rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            transition: border 0.2s;
+        }
+        .search-row input:focus { border-color: #1565c0; }
+        .search-row button {
+            padding: 14px 28px;
+            background: #1565c0;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .search-row button:hover { background: #0d47a1; }
+
+        .stats {
+            max-width: 700px;
+            margin: 0 auto 30px;
+            padding: 0 20px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 12px 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            text-align: center;
+            flex: 1;
+            min-width: 120px;
+        }
+        .stat-card .num { font-size: 1.4rem; font-weight: bold; color: #1565c0; }
+        .stat-card .label { font-size: 0.78rem; color: #888; margin-top: 4px; }
+
+        .results-container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 0 20px 40px;
+        }
+        .results-header {
+            font-size: 0.95rem;
+            color: #555;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+        .result-item {
+            background: white;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: box-shadow 0.2s;
+        }
+        .result-item:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+        .doc-icon {
+            width: 42px; height: 42px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem; flex-shrink: 0;
+        }
+        .doc-name { font-weight: bold; color: #1a237e; font-size: 1rem; }
+        .doc-freq { font-size: 0.85rem; color: #666; margin-top: 4px; }
+        .freq-badge {
+            margin-left: auto;
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+        }
+        .no-results .icon { font-size: 3rem; margin-bottom: 12px; }
+        .hadoop-badge {
+            text-align: center;
+            margin-top: 30px;
+            color: #aaa;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Distributed Search Engine</h1>
+    <p></p>
+    <br>
+    <span class="badge">~300 Documents</span>
+    <span class="badge">700 MB Dataset</span>
+    <span class="badge">2-Node Cluster</span>
+    <span class="badge">HDFS + MapReduce</span>
+</div>
+
+<div class="search-box">
+    <form method="POST" action="/search">
+        <div class="search-row">
+            <input type="text" name="query" placeholder="Enter keyword to search..."
+                   value="{{ query }}" autofocus autocomplete="off">
+            <button type="submit">Search</button>
+        </div>
+    </form>
+</div>
+
+<div class="stats">
+    <div class="stat-card"><div class="num">~300</div><div class="label">Documents</div></div>
+    <div class="stat-card"><div class="num">700 MB</div><div class="label">Dataset Size</div></div>
+    <div class="stat-card"><div class="num">6.7M</div><div class="label">Index Entries</div></div>
+    <div class="stat-card"><div class="num">2</div><div class="label">Cluster Nodes</div></div>
+    <div class="stat-card"><div class="num">298</div><div class="label">Map Tasks</div></div>
+</div>
+
+{% if results is not none %}
+<div class="results-container">
+    {% if results %}
+        <div class="results-header">
+            Found <strong>{{ results|length }}</strong> document(s) for "<strong>{{ query }}</strong>"
+        </div>
+        {% for result in results %}
+        {% set parts = result.split('(') %}
+        <div class="result-item">
+            <div class="doc-icon">📄</div>
+            <div>
+                <div class="doc-name">{{ parts[0] }}.txt</div>
+                <div class="doc-freq">Keyword appears {{ parts[1].replace(')','') }} time(s)</div>
+            </div>
+            <div class="freq-badge">{{ parts[1].replace(')','') }} hits</div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="no-results">
+            <div class="icon"></div>
+            <p>No documents found for "<strong>{{ query }}</strong>"</p>
+            <p style="margin-top:8px; font-size:0.9rem;">Try a different keyword</p>
+        </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="hadoop-badge">
+    Built with Apache Hadoop 3.3.1 · HDFS + MapReduce · 25K-8016 & 25K-8027
+</div>
+
+</body>
+</html>
